@@ -10,7 +10,7 @@
 #include <math.h>
 #include <pthread.h>
 
-/* 制御を行う関数 */
+/* 制御を行う関数 1kHz毎に呼ばれる */
 void Control(double CurrentTime){
     int num = UR.receive(&pc, &mbed);   //UDPを受信
     static bool FirstTime = true;       //初回起動のみ実行するためのフラグ
@@ -71,7 +71,21 @@ void Control(double CurrentTime){
 
     /*-----------------------------------ここから書いてください----------------------------------------------*/
 
+    /* 目標値 */
+    MI.thmref = M_PI * 2;
+    MI.wmref = 0.0;
 
+    /* ゲイン */
+    MI.kp = 0.1;
+    MI.kd = 0.0;
+    MI.ki = 0.0;
+
+    MI.e = MI.thmref - MI.thm; // 角度誤差
+    MI.e_d = MI.wmref - MI.wm; // 角速度誤差
+    MI.e_i += MI.e * smp; // 定常偏差の蓄積 (目標値 - 現在)
+
+    MI.u = MI.kp * MI.e + MI.kd * MI.e_d + MI.ki * MI.e_i;
+    
     /*-----------------------------------ここまで書いてください----------------------------------------------*/
     /* 制御指令値は最大1.0~-1.0なので，制限を計算する */
     if (MI.u > 1.0){
